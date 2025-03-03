@@ -1,0 +1,123 @@
+{
+  "info": {
+    "name": "Ethereum Event Indexer API",
+    "description": "API for querying indexed ERC-20 Transfer events",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Events",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/events",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "events"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Page number",
+              "disabled": false
+            },
+            {
+              "key": "pageSize",
+              "value": "10",
+              "description": "Items per page",
+              "disabled": false
+            },
+            {
+              "key": "from",
+              "value": "",
+              "description": "Sender address",
+              "disabled": true
+            },
+            {
+              "key": "to",
+              "value": "",
+              "description": "Recipient address",
+              "disabled": true
+            },
+            {
+              "key": "startBlock",
+              "value": "",
+              "description": "Start block number",
+              "disabled": true
+            },
+            {
+              "key": "endBlock",
+              "value": "",
+              "description": "End block number",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Retrieve a paginated list of all indexed Transfer events."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Stats",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/stats",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "stats"
+          ]
+        },
+        "description": "Retrieve aggregate statistics."
+      },
+      "response": []
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        },
+        "description": "API health check."
+      },
+      "response": []
+    },
+    {
+      "name": "API Documentation",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            ""
+          ]
+        },
+        "description": "API documentation endpoint."
+      },
+      "response": []
+    }
+  ]
+} 
