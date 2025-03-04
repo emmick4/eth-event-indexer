@@ -4,6 +4,7 @@ import { AppDataSource } from '../config/database';
 import { TransferEvent } from '../models/TransferEvent';
 import { SyncState } from '../models/SyncState';
 import { RPC_URL, CONTRACT_ADDRESS, START_BLOCK } from '../config/config';
+import { TrackedProvider } from '../utils/TrackedProvider';
 
 // ERC-20 Transfer event interface
 const ERC20_ABI = [
@@ -11,17 +12,95 @@ const ERC20_ABI = [
 ];
 
 export class EthereumService {
-  private provider: ethers.JsonRpcProvider;
+  public provider: TrackedProvider;
   private contract: ethers.Contract;
   private transferEventRepository: Repository<TransferEvent>;
   private syncStateRepository: Repository<SyncState>;
   private isIndexing: boolean = false;
+  private contractCreationBlock: number | null = null;
 
   constructor() {
-    this.provider = new ethers.JsonRpcProvider(RPC_URL);
+    this.provider = new TrackedProvider(RPC_URL);
     this.contract = new ethers.Contract(CONTRACT_ADDRESS, ERC20_ABI, this.provider);
     this.transferEventRepository = AppDataSource.getRepository(TransferEvent);
     this.syncStateRepository = AppDataSource.getRepository(SyncState);
+  }
+
+  // Get API statistics
+  public getApiStats() {
+    return this.provider.getStats();
+  }
+
+  // Get the contract creation block if START_BLOCK is 0
+  private async getContractCreationBlock(): Promise<number> {
+    if (this.contractCreationBlock !== null) {
+      return this.contractCreationBlock;
+    }
+
+    try {
+      console.log('Determining contract creation block...');
+      // First check if there's any transaction history for the contract
+      const code = await this.provider.getCode(CONTRACT_ADDRESS);
+      if (code === '0x') {
+        throw new Error('No contract found at the specified address');
+      }
+
+      // Search for the contract creation transaction
+      let startSearchBlock = 0;
+      // For Sepolia testnet, we can start from a more recent block to optimize search
+      if (RPC_URL.includes('sepolia')) {
+        startSearchBlock = 2000000; // Sepolia testnet started in mid-2022
+      }
+
+      // Get the current block
+      const currentBlock = await this.provider.getBlockNumber();
+      
+      // Binary search approach to find the contract creation block
+      // This is more efficient than scanning from block 0
+      const getTransactionCount = async (blockNumber: number) => {
+        try {
+          return await this.provider.getTransactionCount(CONTRACT_ADDRESS, blockNumber);
+        } catch (error) {
+          console.error(`Error getting transaction count at block ${blockNumber}:`, error);
+          return 0;
+        }
+      };
+
+      let low = startSearchBlock;
+      let high = currentBlock;
+      
+      console.log(`Starting binary search for contract creation block. Search range: ${low} to ${high}`);
+      
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const txCountAtMid = await getTransactionCount(mid);
+        const txCountAtMidMinus1 = mid > startSearchBlock ? await getTransactionCount(mid - 1) : -1;
+        
+        if (txCountAtMid > 0 && txCountAtMidMinus1 === 0) {
+          this.contractCreationBlock = mid;
+          console.log(`Contract creation block found: ${mid}`);
+          return mid;
+        } else if (txCountAtMid === 0) {
+          console.log(`No transactions at block ${mid}, searching higher range (${mid+1} to ${high})`);
+          low = mid + 1;
+        } else {
+          console.log(`Transactions found at block ${mid}, searching lower range (${low} to ${mid-1})`);
+          high = mid - 1;
+        }
+      }
+
+      // If binary search fails, use a default value
+      console.warn('Binary search completed without finding exact contract creation block');
+      console.warn(`Search range at end: ${low} to ${high}`);
+      console.warn('Could not determine contract creation block, using default START_BLOCK');
+      this.contractCreationBlock = START_BLOCK > 0 ? START_BLOCK : 1;
+      return this.contractCreationBlock;
+    } catch (error) {
+      console.error('Error finding contract creation block:', error);
+      // Fallback to START_BLOCK if greater than 0, otherwise use block 1
+      this.contractCreationBlock = START_BLOCK > 0 ? START_BLOCK : 1;
+      return this.contractCreationBlock;
+    }
   }
 
   public async getLastSyncedBlock(): Promise<number> {
@@ -30,8 +109,13 @@ export class EthereumService {
     });
 
     if (!syncState) {
+      // If START_BLOCK is 0, determine the contract creation block
+      const startBlock = START_BLOCK === 0 
+        ? await this.getContractCreationBlock() 
+        : START_BLOCK;
+      
       syncState = new SyncState();
-      syncState.lastSyncedBlock = START_BLOCK - 1;
+      syncState.lastSyncedBlock = startBlock - 1;
       syncState.lastSyncedAt = new Date();
       await this.syncStateRepository.save(syncState);
     }
@@ -51,7 +135,12 @@ export class EthereumService {
       const lastSyncedBlock = await this.getLastSyncedBlock();
       const currentBlock = await this.provider.getBlockNumber();
 
-      console.log(`Starting indexer from block ${lastSyncedBlock + 1} to ${currentBlock}`);
+      // Check if we're starting from a contract creation block or specified START_BLOCK
+      if (START_BLOCK === 0) {
+        console.log(`Starting indexer from block ${lastSyncedBlock + 1} (contract creation block) to current block ${currentBlock}`);
+      } else {
+        console.log(`Starting indexer from block ${lastSyncedBlock + 1} (configured START_BLOCK=${START_BLOCK}) to current block ${currentBlock}`);
+      }
 
       for (let fromBlock = lastSyncedBlock + 1; fromBlock <= currentBlock; fromBlock += batchSize) {
         const toBlock = Math.min(fromBlock + batchSize - 1, currentBlock);
@@ -88,15 +177,18 @@ export class EthereumService {
       const transferEvents: TransferEvent[] = [];
 
       for (const event of events) {
-        const block = await event.getBlock();
+        const block = await event.getBlock(); // need this to get the timestamp
+        
+        // Handle ethers.js v6 EventLog structure
+        const eventLog = event as ethers.EventLog;
         
         const transferEvent = new TransferEvent();
-        transferEvent.transactionHash = event.transactionHash;
-        transferEvent.blockNumber = event.blockNumber;
+        transferEvent.transactionHash = eventLog.transactionHash;
+        transferEvent.blockNumber = eventLog.blockNumber;
         transferEvent.timestamp = block.timestamp;
-        transferEvent.from = event.args[0].toLowerCase();
-        transferEvent.to = event.args[1].toLowerCase();
-        transferEvent.value = event.args[2].toString();
+        transferEvent.from = eventLog.args[0].toLowerCase();
+        transferEvent.to = eventLog.args[1].toLowerCase();
+        transferEvent.value = eventLog.args[2].toString();
         transferEvent.logIndex = event.index || 0;
         
         transferEvents.push(transferEvent);
@@ -114,23 +206,31 @@ export class EthereumService {
 
   // Subscribe to new Transfer events in real-time
   public subscribeToTransferEvents(callback: (event: TransferEvent) => void): void {
-    this.contract.on('Transfer', async (from, to, value, event) => {
+    this.contract.on('Transfer', async (from, to, value, eventPayload) => {
       try {
-        const block = await this.provider.getBlock(event.blockNumber);
+        // In ethers v6, the event structure is a ContractEventPayload with the EventLog in the 'log' property
+        const eventLog = eventPayload.log;
+
+        if (!eventLog) {
+          console.error('Missing event log in payload:', eventPayload);
+          return;
+        }
+
+        const block = await this.provider.getBlock(eventLog.blockNumber);
         
         if (!block) {
-          console.error('Block not found for event:', event);
+          console.error('Block not found for event:', eventLog);
           return;
         }
         
         const transferEvent = new TransferEvent();
-        transferEvent.transactionHash = event.transactionHash;
-        transferEvent.blockNumber = event.blockNumber;
+        transferEvent.transactionHash = eventLog.transactionHash;
+        transferEvent.blockNumber = eventLog.blockNumber;
         transferEvent.timestamp = block.timestamp;
         transferEvent.from = from.toLowerCase();
         transferEvent.to = to.toLowerCase();
         transferEvent.value = value.toString();
-        transferEvent.logIndex = event.index || 0;
+        transferEvent.logIndex = eventLog.index || 0;
         
         // Save to database
         await this.transferEventRepository.save(transferEvent);

@@ -41,20 +41,10 @@ This service indexes ERC-20 Transfer events from an Ethereum smart contract and 
 
 3. Create a `.env` file in the root directory:
    ```
-   # Ethereum Node Configuration
-   RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
-   CONTRACT_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-   START_BLOCK=4000000
-
-   # Server Configuration
-   PORT=3000
-   NODE_ENV=development
-
-   # Database Configuration
-   DB_NAME=ethereum_events.db
+   cp example.env .env
    ```
 
-   Replace `YOUR_INFURA_KEY` with your actual Infura API key.
+   Then edit the `.env` file to add your Infura API key and adjust any other settings as needed.
 
 4. Build the application:
    ```

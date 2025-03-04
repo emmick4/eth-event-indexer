@@ -6,8 +6,8 @@ export class SyncState {
   id: string = 'main'; // We'll just use a single record
 
   @Column()
-  lastSyncedBlock: number;
+  lastSyncedBlock: number = 0;
 
   @Column()
-  lastSyncedAt: Date;
+  lastSyncedAt: Date = new Date();
 } 

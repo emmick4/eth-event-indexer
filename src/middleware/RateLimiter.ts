@@ -39,10 +39,11 @@ export class RateLimiter {
 
     // Check if rate limit exceeded
     if (record.count > this.maxRequests) {
-      return res.status(429).json({
+      res.status(429).json({
         error: 'Too many requests, please try again later.',
         retryAfter: Math.ceil((record.lastReset + this.windowMs - now) / 1000)
       });
+      return;
     }
 
     next();

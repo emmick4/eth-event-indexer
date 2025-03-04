@@ -29,4 +29,28 @@ export class StatsController {
       res.status(500).json({ error: 'An error occurred while retrieving statistics' });
     }
   };
+
+  public getApiStats = async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const apiStats = this.ethereumService.getApiStats();
+      
+      // Format the response
+      const response = {
+        overallFailureRate: `${apiStats.overallRate.toFixed(2)}%`,
+        methodStats: Object.entries(apiStats.methodStats).map(([method, stats]) => ({
+          method,
+          success: stats.success,
+          failure: stats.failure,
+          total: stats.success + stats.failure,
+          failureRate: `${stats.rate.toFixed(2)}%`
+        })),
+        rpcUrl: this.ethereumService.provider.getUrl().replace(/\/[^/]*@/, '/****@') // Hide API key if present
+      };
+      
+      res.json(response);
+    } catch (error) {
+      console.error('Error retrieving API stats:', error);
+      res.status(500).json({ error: 'An error occurred while retrieving API statistics' });
+    }
+  };
 } 

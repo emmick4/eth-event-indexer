@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import http from 'http';
 import { initializeDatabase } from './config/database';
@@ -37,9 +37,12 @@ async function bootstrap() {
     // Routes
     app.get('/events', eventController.getEvents);
     app.get('/stats', statsController.getStats);
+    app.get('/api-stats', statsController.getApiStats);
     
     // Basic health check
-    app.get('/health', (_, res) => res.json({ status: 'ok' }));
+    app.get('/health', (req: Request, res: Response) => {
+      res.json({ status: 'ok' });
+    });
     
     // API documentation
     app.get('/', (_, res) => {
@@ -63,6 +66,11 @@ async function bootstrap() {
           {
             path: '/stats',
             description: 'Get statistics about indexed events',
+            method: 'GET'
+          },
+          {
+            path: '/api-stats',
+            description: 'Get statistics about RPC provider API calls and failure rates',
             method: 'GET'
           },
           {
