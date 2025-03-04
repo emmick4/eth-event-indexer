@@ -7,6 +7,7 @@ dotenv.config();
 export const RPC_URL = process.env.RPC_URL || 'https://sepolia.infura.io/v3/YOUR_INFURA_KEY';
 export const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
 export const START_BLOCK = parseInt(process.env.START_BLOCK || '0', 10);
+export const INITIAL_BATCH_SIZE = parseInt(process.env.INITIAL_BATCH_SIZE || '200', 10); // Smaller initial batch size to avoid rate limiting
 
 // Server configuration
 export const PORT = process.env.PORT || 3000;

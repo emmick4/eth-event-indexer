@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import http from 'http';
 import { initializeDatabase } from './config/database';
-import { PORT } from './config/config';
+import { PORT, INITIAL_BATCH_SIZE } from './config/config';
 import { EthereumService } from './services/EthereumService';
 import { WebSocketService } from './services/WebSocketService';
 import { EventController } from './controllers/EventController';
@@ -84,8 +84,8 @@ async function bootstrap() {
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       
-      // Start indexing service
-      ethereumService.startEventIndexing();
+      // Start indexing service with configured batch size
+      ethereumService.startEventIndexing(INITIAL_BATCH_SIZE);
       
       // Subscribe to live events and broadcast via WebSocket
       ethereumService.subscribeToTransferEvents((event) => {

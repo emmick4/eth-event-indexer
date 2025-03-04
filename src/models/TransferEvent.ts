@@ -23,7 +23,7 @@ export class TransferEvent {
   @Column('text')
   value: string = '0'; // Store as string to handle large numbers
 
-  @Column({ nullable: true })
+  @PrimaryColumn()
   logIndex: number = 0;
 
   @CreateDateColumn()
