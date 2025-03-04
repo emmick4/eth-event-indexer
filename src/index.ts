@@ -37,7 +37,6 @@ async function bootstrap() {
     // Routes
     app.get('/events', eventController.getEvents);
     app.get('/stats', statsController.getStats);
-    app.get('/api-stats', statsController.getApiStats);
     
     // Basic health check
     app.get('/health', (req: Request, res: Response) => {
@@ -66,11 +65,6 @@ async function bootstrap() {
           {
             path: '/stats',
             description: 'Get statistics about indexed events',
-            method: 'GET'
-          },
-          {
-            path: '/api-stats',
-            description: 'Get statistics about RPC provider API calls and failure rates',
             method: 'GET'
           },
           {

@@ -4,7 +4,6 @@ import { AppDataSource } from '../config/database';
 import { TransferEvent } from '../models/TransferEvent';
 import { SyncState } from '../models/SyncState';
 import { RPC_URL, CONTRACT_ADDRESS, START_BLOCK } from '../config/config';
-import { TrackedProvider } from '../utils/TrackedProvider';
 
 // ERC-20 Transfer event interface
 const ERC20_ABI = [
@@ -12,7 +11,7 @@ const ERC20_ABI = [
 ];
 
 export class EthereumService {
-  public provider: TrackedProvider;
+  private provider: ethers.JsonRpcProvider;
   private contract: ethers.Contract;
   private transferEventRepository: Repository<TransferEvent>;
   private syncStateRepository: Repository<SyncState>;
@@ -20,15 +19,10 @@ export class EthereumService {
   private contractCreationBlock: number | null = null;
 
   constructor() {
-    this.provider = new TrackedProvider(RPC_URL);
+    this.provider = new ethers.JsonRpcProvider(RPC_URL);
     this.contract = new ethers.Contract(CONTRACT_ADDRESS, ERC20_ABI, this.provider);
     this.transferEventRepository = AppDataSource.getRepository(TransferEvent);
     this.syncStateRepository = AppDataSource.getRepository(SyncState);
-  }
-
-  // Get API statistics
-  public getApiStats() {
-    return this.provider.getStats();
   }
 
   // Get the contract creation block if START_BLOCK is 0
