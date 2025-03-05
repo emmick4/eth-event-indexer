@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Ethereum Event Indexer API",
-    "description": "API for querying indexed ERC-20 Transfer events",
+    "description": "API for querying indexed ERC-20 Transfer events from Ethereum's Sepolia testnet",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -29,38 +29,62 @@
             {
               "key": "pageSize",
               "value": "10",
-              "description": "Items per page",
+              "description": "Items per page (max 100)",
               "disabled": false
             },
             {
               "key": "from",
-              "value": "",
-              "description": "Sender address",
+              "value": "0x1234567890123456789012345678901234567890",
+              "description": "Sender address (must be valid Ethereum address)",
               "disabled": true
             },
             {
               "key": "to",
-              "value": "",
-              "description": "Recipient address",
+              "value": "0x1234567890123456789012345678901234567890",
+              "description": "Recipient address (must be valid Ethereum address)",
               "disabled": true
             },
             {
               "key": "startBlock",
-              "value": "",
+              "value": "4000000",
               "description": "Start block number",
               "disabled": true
             },
             {
               "key": "endBlock",
-              "value": "",
+              "value": "4100000",
               "description": "End block number",
               "disabled": true
             }
           ]
         },
-        "description": "Retrieve a paginated list of all indexed Transfer events."
+        "description": "Retrieve a paginated list of all indexed Transfer events with optional filtering by address and block range."
       },
-      "response": []
+      "response": [
+        {
+          "name": "Example Response",
+          "originalRequest": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3000/events?page=1&pageSize=2",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["events"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "pageSize", "value": "2"}
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {"key": "Content-Type", "value": "application/json"}
+          ],
+          "body": "{\n  \"data\": [\n    {\n      \"transactionHash\": \"0x123abc...\",\n      \"blockNumber\": 4000100,\n      \"timestamp\": 1620000000,\n      \"from\": \"0x1234567890123456789012345678901234567890\",\n      \"to\": \"0x0987654321098765432109876543210987654321\",\n      \"value\": \"1000000\",\n      \"logIndex\": 0,\n      \"indexedAt\": \"2023-03-01T12:00:00.000Z\"\n    },\n    {\n      \"transactionHash\": \"0x456def...\",\n      \"blockNumber\": 4000101,\n      \"timestamp\": 1620000060,\n      \"from\": \"0x0987654321098765432109876543210987654321\",\n      \"to\": \"0x1234567890123456789012345678901234567890\",\n      \"value\": \"2000000\",\n      \"logIndex\": 1,\n      \"indexedAt\": \"2023-03-01T12:01:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"totalCount\": 150,\n    \"page\": 1,\n    \"pageSize\": 2,\n    \"totalPages\": 75\n  }\n}"
+        }
+      ]
     },
     {
       "name": "Get Stats",
@@ -77,9 +101,29 @@
             "stats"
           ]
         },
-        "description": "Retrieve aggregate statistics."
+        "description": "Retrieve aggregate statistics about indexed Transfer events, including total events and total value transferred."
       },
-      "response": []
+      "response": [
+        {
+          "name": "Example Response",
+          "originalRequest": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3000/stats",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["stats"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {"key": "Content-Type", "value": "application/json"}
+          ],
+          "body": "{\n  \"totalEvents\": 1250,\n  \"totalValueTransferred\": \"1250000000\",\n  \"formattedTotalValueTransferred\": \"1,250.00 USDC\"\n}"
+        }
+      ]
     },
     {
       "name": "Health Check",
@@ -96,9 +140,29 @@
             "health"
           ]
         },
-        "description": "API health check."
+        "description": "API health check to verify the service is running properly."
       },
-      "response": []
+      "response": [
+        {
+          "name": "Example Response",
+          "originalRequest": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3000/health",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["health"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {"key": "Content-Type", "value": "application/json"}
+          ],
+          "body": "{\n  \"status\": \"ok\"\n}"
+        }
+      ]
     },
     {
       "name": "API Documentation",
@@ -115,9 +179,29 @@
             ""
           ]
         },
-        "description": "API documentation endpoint."
+        "description": "API documentation endpoint that provides information about all available endpoints."
       },
-      "response": []
+      "response": [
+        {
+          "name": "Example Response",
+          "originalRequest": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3000/",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": [""]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {"key": "Content-Type", "value": "application/json"}
+          ],
+          "body": "{\n  \"name\": \"Ethereum Event Indexer API\",\n  \"description\": \"API for querying indexed ERC-20 Transfer events\",\n  \"endpoints\": [\n    {\n      \"path\": \"/events\",\n      \"description\": \"Get paginated Transfer events with optional filters\",\n      \"method\": \"GET\",\n      \"params\": {\n        \"from\": \"Filter by sender address\",\n        \"to\": \"Filter by recipient address\",\n        \"startBlock\": \"Filter by starting block number\",\n        \"endBlock\": \"Filter by ending block number\",\n        \"page\": \"Page number (default: 1)\",\n        \"pageSize\": \"Items per page (default: 10, max: 100)\"\n      }\n    },\n    {\n      \"path\": \"/stats\",\n      \"description\": \"Get statistics about indexed events\",\n      \"method\": \"GET\"\n    },\n    {\n      \"path\": \"/health\",\n      \"description\": \"Health check endpoint\",\n      \"method\": \"GET\"\n    }\n  ],\n  \"websocket\": {\n    \"path\": \"/\",\n    \"description\": \"WebSocket endpoint for real-time Transfer events\"\n  }\n}"
+        }
+      ]
     }
   ]
 } 

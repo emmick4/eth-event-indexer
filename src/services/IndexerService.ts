@@ -323,36 +323,25 @@ export class IndexerService {
         await this.transferEventRepository.save(transferEvent);
         
         try {
-          // Update real-time sync state with better error handling
-          // First try to get existing record
-          let realtimeSyncState = await this.syncStateRepository.findOne({
-            where: { id: 'realtime-sync' }
-          });
-          
-          if (!realtimeSyncState) {
-            try {
-              // Create if it doesn't exist
-              const newSyncState = new SyncState();
-              newSyncState.id = 'realtime-sync';
-              newSyncState.lastSyncedBlock = transferEvent.blockNumber;
-              newSyncState.lastSyncedAt = new Date();
-              await this.syncStateRepository.save(newSyncState);
-            } catch (dbError: any) {
-              // If we get a unique constraint error, it means another concurrent process created the record
-              // Just fetch it again and update it
-              console.log('Error creating realtime-sync state, trying to fetch it again:', dbError.message);
-              realtimeSyncState = await this.syncStateRepository.findOne({
-                where: { id: 'realtime-sync' }
-              });
-            }
-          }
-          
-          // If we have a record (either existing or fetched after creation error), update it
-          if (realtimeSyncState && transferEvent.blockNumber > realtimeSyncState.lastSyncedBlock) {
-            realtimeSyncState.lastSyncedBlock = transferEvent.blockNumber;
-            realtimeSyncState.lastSyncedAt = new Date();
-            await this.syncStateRepository.save(realtimeSyncState);
-          }
+          // Simple approach: Use a raw upsert query to update the sync state
+          // This is much more reliable for SQLite and handles the race condition properly
+          await this.syncStateRepository.manager.query(
+            `INSERT INTO sync_state (id, lastSyncedBlock, lastSyncedAt, isIndexing) 
+             VALUES (?, ?, ?, ?) 
+             ON CONFLICT(id) DO UPDATE SET 
+               lastSyncedBlock = CASE WHEN lastSyncedBlock < ? THEN ? ELSE lastSyncedBlock END,
+               lastSyncedAt = CASE WHEN lastSyncedBlock < ? THEN ? ELSE lastSyncedAt END`,
+            [
+              'realtime-sync', 
+              transferEvent.blockNumber, 
+              new Date(), 
+              false,
+              transferEvent.blockNumber,
+              transferEvent.blockNumber,
+              transferEvent.blockNumber,
+              new Date()
+            ]
+          );
         } catch (syncError) {
           // Log but don't stop processing - the event was already saved
           console.error('Error updating realtime-sync state:', syncError);

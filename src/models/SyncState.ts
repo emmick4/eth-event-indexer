@@ -10,4 +10,7 @@ export class SyncState {
 
   @Column()
   lastSyncedAt: Date = new Date();
+  
+  @Column({ default: false })
+  isIndexing: boolean = false;
 } 
